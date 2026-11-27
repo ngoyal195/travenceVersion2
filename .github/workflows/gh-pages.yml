@@ -1,1 +1,44 @@
+name: Build and deploy to GitHub Pages
 
+# Run on push to main (change if your default branch is 'master')
+on:
+  push:
+    branches:
+      - main
+
+# Request explicit permissions so the GITHUB_TOKEN can push to gh-pages
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo (with credentials)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true  # ensure GITHUB_TOKEN is available to later steps
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build (static export via next.config.js)
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./out
+          publish_branch: gh-pages
